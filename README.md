@@ -38,6 +38,7 @@ To get started with the project, follow these steps:
 
 1. Clone the repository:
    ```bash
+   https://github.com/vikasgowda222/SkillForge-AI-Full-Stack-AI-Mock-Interview-App
    ```
 
 2. Navigate to the project directory:
