@@ -65,6 +65,7 @@ We welcome contributions! Please follow these steps to contribute:
 1. **Fork the repository**: Click the "Fork" button at the top right corner of this repository.
 2. **Clone your fork**:
    ```bash
+   https://github.com/vikasgowda222/SkillForge-AI-Full-Stack-AI-Mock-Interview-App
    
    ```
 3. **Create a new branch**:
