@@ -34,18 +34,18 @@ function Header() {
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen((prev) => !prev);
-    
+
     // Prevent body scrolling when menu is open
     if (!isMobileMenuOpen) {
-      document.body.style.overflow = 'hidden';
+      document.body.style.overflow = "hidden";
     } else {
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = "unset";
     }
   };
 
   const closeMobileMenu = () => {
     setIsMobileMenuOpen(false);
-    document.body.style.overflow = 'unset';
+    document.body.style.overflow = "unset";
   };
 
   const navItems = [
@@ -59,28 +59,30 @@ function Header() {
     <>
       <header
         className={`
-          fixed top-0 left-0 right-0 
-          flex justify-between items-center 
-          p-4 sm:p-5 
-          bg-white/90 backdrop-blur-md 
-          shadow-md z-50 
+          fixed top-0 left-0 right-0
+          flex justify-between items-center
+          p-4 sm:p-5
+          bg-white/90 backdrop-blur-md
+          shadow-md z-50
           transition-all duration-300 ease-in-out
           ${isVisible ? "translate-y-0" : "-translate-y-full"}
         `}
       >
         {/* Logo */}
-        <Link 
-          href="/" 
+        <Link
+          href="/"
           className="flex items-center gap-2"
           aria-label="SkillForge AI Home"
           onClick={closeMobileMenu}
         >
           <Bot className="text-indigo-600" size={28} />
-          <span className="text-xl sm:text-2xl font-bold text-indigo-600">SkillForge AI</span>
+          <span className="text-xl sm:text-2xl font-bold text-indigo-600">
+            SkillForge AI
+          </span>
         </Link>
 
         {/* Desktop Navigation */}
-        <nav 
+        <nav
           className="hidden md:flex gap-4 lg:gap-6"
           aria-label="Main Navigation"
         >
@@ -111,16 +113,16 @@ function Header() {
         <div className="hidden md:block">
           <SignedOut>
             <SignInButton mode="modal">
-              <button 
+              <button
                 className="
-                  px-4 py-2 
-                  bg-indigo-600 text-white 
-                  rounded-md 
-                  hover:bg-indigo-700 
+                  px-4 py-2
+                  bg-indigo-600 text-white
+                  rounded-md
+                  hover:bg-indigo-700
                   transition-colors
-                  focus:outline-none 
-                  focus:ring-2 
-                  focus:ring-indigo-500 
+                  focus:outline-none
+                  focus:ring-2
+                  focus:ring-indigo-500
                   focus:ring-offset-2
                 "
               >
@@ -129,13 +131,13 @@ function Header() {
             </SignInButton>
           </SignedOut>
           <SignedIn>
-            <UserButton 
-              afterSignOutUrl="/" 
+            <UserButton
+              afterSignOutUrl="/"
               appearance={{
                 elements: {
                   userButtonAvatarBox: "w-10 h-10",
                 },
-              }} 
+              }}
             />
           </SignedIn>
         </div>
@@ -143,10 +145,10 @@ function Header() {
 
       {/* Mobile Menu Overlay */}
       {isMobileMenuOpen && (
-        <div 
+        <div
           className="
-            fixed inset-0 top-0 
-            bg-white z-40 md:hidden 
+            fixed inset-0 top-0
+            bg-white z-40 md:hidden
             overflow-hidden
             pt-16
           "
@@ -171,16 +173,16 @@ function Header() {
               <div className="pt-6 border-t">
                 <SignedOut>
                   <SignInButton mode="modal">
-                    <button 
+                    <button
                       className="
-                        w-full px-4 py-2 
-                        bg-indigo-600 text-white 
-                        rounded-md 
-                        hover:bg-indigo-700 
+                        w-full px-4 py-2
+                        bg-indigo-600 text-white
+                        rounded-md
+                        hover:bg-indigo-700
                         transition-colors
-                        focus:outline-none 
-                        focus:ring-2 
-                        focus:ring-indigo-500 
+                        focus:outline-none
+                        focus:ring-2
+                        focus:ring-indigo-500
                         focus:ring-offset-2
                       "
                       onClick={closeMobileMenu}
@@ -191,13 +193,13 @@ function Header() {
                 </SignedOut>
                 <SignedIn>
                   <div className="flex justify-center">
-                    <UserButton 
-                      afterSignOutUrl="/" 
+                    <UserButton
+                      afterSignOutUrl="/"
                       appearance={{
                         elements: {
                           userButtonAvatarBox: "w-12 h-12 mx-auto",
                         },
-                      }} 
+                      }}
                     />
                   </div>
                 </SignedIn>
@@ -212,24 +214,26 @@ function Header() {
 
 function NavItem({ path, href, label, mobile, onClick }) {
   return (
-    <Link 
-      href={href} 
+    <Link
+      href={href}
       onClick={onClick}
       className={`
-        block 
-        transition-all duration-300 ease-in-out 
-        cursor-pointer 
-        rounded-lg 
-        focus:outline-none 
-        focus:ring-2 
+        block
+        transition-all duration-300 ease-in-out
+        cursor-pointer
+        rounded-lg
+        focus:outline-none
+        focus:ring-2
         focus:ring-indigo-500
-        ${mobile
-          ? "w-full text-lg py-3 text-center"
-          : "px-3 py-2 hover:bg-indigo-100 hover:text-indigo-600"
+        ${
+          mobile
+            ? "w-full text-lg py-3 text-center"
+            : "px-3 py-2 hover:bg-indigo-100 hover:text-indigo-600"
         }
-        ${path === href
-          ? "text-indigo-600 font-bold bg-indigo-100"
-          : "text-gray-700 hover:text-indigo-600"
+        ${
+          path === href
+            ? "text-indigo-600 font-bold bg-indigo-100"
+            : "text-gray-700 hover:text-indigo-600"
         }
       `}
     >

@@ -1,37 +1,22 @@
-"use client";
-import { db } from "@/utils/db";
-import { MockInterview } from "@/utils/schema";
-import { useUser } from "@clerk/nextjs";
-import { desc, eq } from "drizzle-orm";
-import React, { useEffect, useState } from "react";
-import InterviewItemCard from "./InterviewItemCard"
+import React from "react";
+import InterviewItemCard from "./InterviewItemCard";
 
-const InterviewList = () => {
-  const { user } = useUser();
-  const [InterviewList, setInterviewList] = useState([]);
-  useEffect(() => {
-    user && GetInterviewList();
-  }, [user]);
-  const GetInterviewList = async () => {
-    const result = await db
-      .select()
-      .from(MockInterview)
-      .where(
-        eq(MockInterview.createdBy, user?.primaryEmailAddress?.emailAddress)
-      )
-      .orderBy(desc(MockInterview.id));
-
-   
-    setInterviewList(result)
-  };
+const InterviewList = ({ interviews = [] }) => {
   return (
     <div>
-      <h2 className="font-medium text-xl">Previous Mock Interview</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 my-3">
-        {InterviewList&&InterviewList.map((interview,index)=>(
-            <InterviewItemCard interview={interview} key={index}/>
-        ))}
-      </div>
+      <h2 className="font-medium text-xl">Previous Mock Interviews</h2>
+      {interviews.length === 0 ? (
+        <p className="text-sm text-gray-500 my-3">
+          You haven&apos;t created any interviews yet. Add one above to get
+          started.
+        </p>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 my-3">
+          {interviews.map((interview) => (
+            <InterviewItemCard interview={interview} key={interview.id} />
+          ))}
+        </div>
+      )}
     </div>
   );
 };

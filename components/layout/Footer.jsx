@@ -1,5 +1,5 @@
 import React from "react";
-import { CopyrightIcon, Github, Linkedin, Twitter } from "lucide-react";
+import { CopyrightIcon, Github, Linkedin } from "lucide-react";
 
 const Footer = () => {
   return (
@@ -8,10 +8,10 @@ const Footer = () => {
         {/* Copyright Section */}
         <div className="flex items-center text-sm">
           <CopyrightIcon className="mr-2 h-5 w-5 text-gray-400" />
-          <span>{new Date().getFullYear()} SkillForge AI. All Rights Reserved.</span>
+          <span>
+            {new Date().getFullYear()} SkillForge AI. All Rights Reserved.
+          </span>
         </div>
-
-       
 
         {/* Social Media Links */}
         <div className="flex space-x-4">
@@ -32,15 +32,6 @@ const Footer = () => {
             aria-label="LinkedIn"
           >
             <Linkedin className="h-6 w-6" />
-          </a>
-          <a
-            href=" "
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:text-indigo-500 transition-colors"
-            aria-label="Twitter"
-          >
-            <Twitter className="h-6 w-6" />
           </a>
         </div>
       </div>
