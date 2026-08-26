@@ -52,6 +52,12 @@ export const UserAnswer = pgTable(
     userAns: text("user_ans"),
     feedback: text("feedback"),
     rating: integer("rating"),
+    // Per-dimension rubric scores (0-10), nullable so pre-rubric rows and any
+    // legacy data keep working. `rating` remains the overall score.
+    scoreCorrectness: integer("score_correctness"),
+    scoreClarity: integer("score_clarity"),
+    scoreDepth: integer("score_depth"),
+    scoreCommunication: integer("score_communication"),
     userEmail: varchar("user_email", { length: 320 }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()

@@ -47,11 +47,15 @@ Drizzle/Neon   Gemini (JSON)   Rate limiter
 
 - **AI-generated interviews** tailored to job role, description, and years of
   experience.
+- **Adaptive follow-up questions** — an agentic step generates a deeper
+  follow-up from the candidate's actual answer, so the interview reacts to what
+  they say instead of following a fixed script.
 - **Voice answers** via the browser Web Speech API, with webcam preview.
-- **Structured feedback & scoring** (0–10) per answer, generated and validated
-  server-side.
+- **Multi-dimensional rubric scoring** — every answer is scored 0–10 on
+  _correctness, clarity, depth,_ and _communication_ (not just one number),
+  generated and Zod-validated server-side and shown as a per-skill breakdown.
 - **Personal dashboard** with interview history and aggregate stats
-  (best / average score), computed NaN-safely.
+  (best / average score + per-skill averages), computed NaN-safely.
 - **Secure by construction** — auth-gated Server Actions, per-user ownership,
   Zod-validated inputs and model output, security headers + CSP, per-user rate
   limiting.
@@ -189,11 +193,12 @@ database before first use.
 
 ## Roadmap
 
-Advanced, trend-aligned features are planned as independent, layered PRs:
-streaming + agentic multi-agent interviews with rubric scoring, resume/JD-aware
-question generation, richer voice UX, analytics + shareable reports, a coding
-interview mode, and production infrastructure (Sentry, Upstash, Clerk webhooks,
-Docker).
+Advanced, trend-aligned features are landing as independent, layered PRs.
+**Shipped:** multi-dimensional rubric scoring and agentic adaptive follow-up
+questions. **Next up:** token-by-token streaming (Vercel AI SDK), resume/JD-aware
+question generation, a per-skill analytics dashboard with shareable reports, a
+coding-interview mode, and production infrastructure (Sentry, Upstash, Clerk
+webhooks, Docker).
 
 ## License
 
