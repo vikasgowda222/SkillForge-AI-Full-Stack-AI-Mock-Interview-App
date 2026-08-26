@@ -1,89 +1,200 @@
+# SkillForge AI — AI Mock Interview Platform
 
-# Full Stack AI Mock Interview App
+SkillForge AI is a full-stack web app that runs realistic, AI-driven mock
+interviews. A candidate describes a role and experience level, the app
+generates tailored questions with a large language model, records spoken
+answers, and returns structured, per-answer feedback and scoring.
 
-**Welcome to the Full Stack AI Mock Interview App!**  
-This project is designed to help developers enhance their skills through AI-driven mock interviews, providing real-time feedback to simulate a realistic interview experience.
+Built with **Next.js 14 (App Router)**, **Clerk** auth, **Neon Postgres +
+Drizzle ORM**, and **Google Gemini**. Written in JavaScript, type-guarded with
+JSDoc and validated end-to-end with **Zod**.
 
-## Table of Contents
-- [Overview](#overview)
-- [Features](#features)
-- [Technologies Used](#technologies-used)
-- [Getting Started](#getting-started)
-  - [Installation](#installation)
-  - [Usage](#usage)
-- [Contributing](#contributing)
-- [License](#license)
+---
 
-## Overview
-The Full Stack AI Mock Interview App allows users to practice technical and behavioral interview questions in an interactive environment. The app generates custom questions based on user preferences and delivers instant feedback on answers to help users improve their interview skills.
+## Architecture
+
+All database access and all AI calls happen **on the server**, behind
+authentication and per-row ownership checks. The browser never sees the
+database connection string or the Gemini key, and never talks to either
+service directly.
+
+```
+Browser (Client Components)
+   │  calls Server Actions only  ──────────────┐
+   ▼                                            ▼
+Server Actions ("use server", server-only)   Server Components
+   │   • Clerk auth() → userId                   • auth() + ownership fetch
+   │   • Zod validation (input AND AI output)
+   ├──────────────┬───────────────┐
+   ▼              ▼               ▼
+Drizzle/Neon   Gemini (JSON)   Rate limiter
+(Postgres)     stateless        (per-user)
+```
+
+- **Server Actions** (`lib/actions/interviews.js`) are the only path to the
+  database and the model. Every action resolves the Clerk `userId` and scopes
+  every query to it (`where userId = :caller`), so one user can never read or
+  mutate another user's interviews.
+- **AI calls are stateless** (`lib/ai/gemini.js`): a fresh request per call
+  with `responseMimeType: application/json`, so concurrent users never share
+  chat context. Model output is parsed defensively and then **validated with
+  Zod** before it is trusted or stored.
+- **Server Components** fetch data with the same auth + ownership guard and
+  render small Client Components for the interactive bits (webcam, speech,
+  collapsibles).
 
 ## Features
-- **AI-Driven Questions**: Get custom-tailored interview questions based on your profile and feedback.
-- **User Authentication**: Secure login and signup using Clerk.
-- **Real-Time Feedback**: Answer interview questions and receive immediate feedback with the help of Gemini AI.
-- **Interactive UI**: A responsive, user-friendly interface built with React.
-- **Data Persistence**: User data and interview history managed through Drizzle ORM.
 
-## Technologies Used
-- **[Next.js](https://nextjs.org/)**: Framework for server-rendered React applications.
-- **[React](https://reactjs.org/)**: JavaScript library for building user interfaces.
-- **[Drizzle ORM](https://drizzle.team/)**: ORM for managing database interactions.
-- **[Gemini AI](https://gemini.ai/)**: AI API for generating interview questions and analyzing answers.
-- **[Clerk](https://clerk.dev/)**: Authentication and user management.
+- **AI-generated interviews** tailored to job role, description, and years of
+  experience.
+- **Voice answers** via the browser Web Speech API, with webcam preview.
+- **Structured feedback & scoring** (0–10) per answer, generated and validated
+  server-side.
+- **Personal dashboard** with interview history and aggregate stats
+  (best / average score), computed NaN-safely.
+- **Secure by construction** — auth-gated Server Actions, per-user ownership,
+  Zod-validated inputs and model output, security headers + CSP, per-user rate
+  limiting.
 
-## Getting Started
+## Tech stack
 
-### Installation
-To get started with the project, follow these steps:
+| Area       | Choice                                              |
+| ---------- | --------------------------------------------------- |
+| Framework  | Next.js 14 (App Router), React 18                   |
+| Auth       | Clerk (`@clerk/nextjs`)                             |
+| Database   | Neon serverless Postgres + Drizzle ORM              |
+| AI         | Google Gemini (`@google/generative-ai`)             |
+| Validation | Zod (+ JSDoc types)                                 |
+| UI         | Tailwind CSS + shadcn/ui, lucide-react, sonner      |
+| Testing    | Vitest (unit + integration), Playwright (E2E smoke) |
+| Tooling    | ESLint (next/core-web-vitals), Prettier             |
 
-1. Clone the repository:
-   ```bash
-   https://github.com/vikasgowda222/SkillForge-AI-Full-Stack-AI-Mock-Interview-App
-   ```
+---
 
-2. Navigate to the project directory:
-   ```bash
-   cd full-stack-ai-mock-interview-app
-   ```
+## Getting started
 
-3. Install the dependencies:
-   ```bash
-   npm install
-   ```
+### Prerequisites
 
-### Usage
-1. Start the development server:
-   ```bash
-   npm run dev
-   ```
+- Node.js 18.18+ (or 20+)
+- A Neon Postgres database
+- A Clerk application (publishable + secret keys)
+- A Google Gemini API key
 
-2. Open your browser and visit [http://localhost:3000](http://localhost:3000) to see the app in action!
+### 1. Install
 
-## Contributing
-We welcome contributions! Please follow these steps to contribute:
+```bash
+npm install
+```
 
-1. **Fork the repository**: Click the "Fork" button at the top right corner of this repository.
-2. **Clone your fork**:
-   ```bash
-   https://github.com/vikasgowda222/SkillForge-AI-Full-Stack-AI-Mock-Interview-App
-   
-   ```
-3. **Create a new branch**:
-   ```bash
-   git checkout -b your-feature-branch
-   ```
-4. **Make your changes**: Add features or fix bugs.
-5. **Commit your changes**:
-   ```bash
-   git commit -m "Describe your changes"
-   ```
-6. **Push your branch**:
-   ```bash
-   git push origin your-feature-branch
-   ```
-7. **Create a pull request**: Go to the original repository and open a pull request.
+### 2. Configure environment
 
+Copy the example file and fill in real values:
 
+```bash
+cp .env.example .env.local
+```
 
+> **Security:** `DATABASE_URL` and `GEMINI_API_KEY` are **server-only**. Never
+> prefix them with `NEXT_PUBLIC_` — that would ship the secret in the browser
+> bundle. See [`.env.example`](.env.example) for the full list.
 
+### 3. Set up the database
 
+Generate/apply the schema to your Neon database:
+
+```bash
+npm run db:push        # push the schema directly (fastest for a fresh DB)
+# or, migration-based:
+npm run db:generate    # regenerate SQL from utils/schema.js
+```
+
+### 4. Run
+
+```bash
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000).
+
+---
+
+## Scripts
+
+| Script                 | Purpose                                     |
+| ---------------------- | ------------------------------------------- |
+| `npm run dev`          | Start the dev server                        |
+| `npm run build`        | Production build                            |
+| `npm run start`        | Serve the production build                  |
+| `npm run lint`         | ESLint (`next/core-web-vitals`)             |
+| `npm run format`       | Format with Prettier                        |
+| `npm run format:check` | Verify formatting (used in CI)              |
+| `npm run test`         | Run unit + integration tests (Vitest)       |
+| `npm run test:watch`   | Vitest in watch mode                        |
+| `npm run test:e2e`     | Playwright E2E smoke tests (needs real env) |
+| `npm run db:generate`  | Generate Drizzle migration from the schema  |
+| `npm run db:push`      | Push the schema to the database             |
+| `npm run db:studio`    | Open Drizzle Studio                         |
+
+## Testing
+
+- **Unit** (`test/unit`): Zod validators, AI-output normalization, and the `cn`
+  class helper — pure logic, no I/O.
+- **Integration** (`test/integration`): Server Actions with the database,
+  Gemini, Clerk, and rate limiter mocked. These lock in the security
+  guarantees — unauthenticated calls throw, and every query is scoped to the
+  caller's `userId`.
+- **E2E** (`e2e`): Playwright smoke test (landing renders, `/dashboard` is
+  auth-gated). Requires real Clerk keys and a running app, so it is **not** run
+  in CI.
+
+```bash
+npm run test
+```
+
+## Project structure
+
+```
+app/                     App Router routes, layouts, error/loading boundaries
+  dashboard/             Authenticated area (interviews, feedback)
+components/
+  layout/                Header / Footer
+  ui/                    shadcn/ui primitives
+lib/
+  actions/interviews.js  Server Actions — the ONLY db/AI entry point
+  ai/gemini.js           Stateless Gemini JSON client (server-only)
+  validation/interview.js Zod schemas for input AND model output
+  ratelimit.js           Per-user rate limiting (server-only)
+utils/
+  db.js                  Drizzle/Neon client (server-only)
+  schema.js              Drizzle schema
+drizzle/                 Generated SQL migrations + snapshots
+test/                    Vitest unit + integration tests
+e2e/                     Playwright smoke tests
+```
+
+## Deployment
+
+Deploy to Vercel (or any Node host). Set the environment variables from
+`.env.example` in the platform's project settings — **server-side**, not as
+`NEXT_PUBLIC_`. Run the database migration/push against your production Neon
+database before first use.
+
+## Security notes
+
+- Secrets are server-only and never exposed to the client.
+- Security headers (CSP, `X-Frame-Options`, `X-Content-Type-Options`,
+  `Referrer-Policy`, `Permissions-Policy`, HSTS) are set in
+  [`next.config.mjs`](next.config.mjs).
+- All data access is authenticated and ownership-scoped.
+
+## Roadmap
+
+Advanced, trend-aligned features are planned as independent, layered PRs:
+streaming + agentic multi-agent interviews with rubric scoring, resume/JD-aware
+question generation, richer voice UX, analytics + shareable reports, a coding
+interview mode, and production infrastructure (Sentry, Upstash, Clerk webhooks,
+Docker).
+
+## License
+
+[MIT](LICENSE) © Vikas Gowda
