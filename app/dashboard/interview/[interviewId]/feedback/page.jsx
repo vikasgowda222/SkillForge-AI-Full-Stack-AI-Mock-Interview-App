@@ -6,5 +6,5 @@ export default async function FeedbackPage({ params }) {
   const { interview, answers } = await getFeedback(params.interviewId);
   if (!interview) notFound();
 
-  return <FeedbackView answers={answers} />;
+  return <FeedbackView answers={answers} interview={interview} />;
 }

@@ -15,6 +15,13 @@
       "when": 1787737499802,
       "tag": "0001_romantic_mongoose",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1787740257592,
+      "tag": "0002_silent_puff_adder",
+      "breakpoints": true
     }
   ]
 }

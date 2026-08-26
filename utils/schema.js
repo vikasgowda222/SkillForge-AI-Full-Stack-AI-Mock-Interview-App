@@ -25,6 +25,9 @@ export const MockInterview = pgTable(
     jobExperience: varchar("job_experience", { length: 20 }).notNull(),
     createdBy: varchar("created_by", { length: 320 }),
     userId: varchar("user_id", { length: 64 }).notNull(),
+    // Opaque token for a public, read-only shared report. Null = not shared.
+    // Set/cleared by the owner; the public share route looks up ONLY by this.
+    shareId: varchar("share_id", { length: 36 }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -33,6 +36,7 @@ export const MockInterview = pgTable(
     mockIdIdx: uniqueIndex("mock_interview_mock_id_idx").on(table.mockId),
     userIdIdx: index("mock_interview_user_id_idx").on(table.userId),
     createdByIdx: index("mock_interview_created_by_idx").on(table.createdBy),
+    shareIdIdx: uniqueIndex("mock_interview_share_id_idx").on(table.shareId),
   }),
 );
 
