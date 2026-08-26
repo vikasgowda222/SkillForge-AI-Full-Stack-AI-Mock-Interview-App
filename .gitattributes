@@ -1,1 +1,43 @@
+# Normalize line endings across all platforms.
+#
+# Store every text file with LF in the repository AND check it out with LF in
+# the working tree (eol=lf), regardless of the contributor's core.autocrlf
+# setting. This matches what Prettier writes and what CI verifies, so a
+# Windows checkout no longer shows every file as "modified" (CRLF vs LF).
+* text=auto eol=lf
+
+# Explicit LF for the source/text types we ship (belt-and-suspenders; also
+# helps tools that key off extension rather than content detection).
+*.js    text eol=lf
+*.jsx   text eol=lf
+*.mjs   text eol=lf
+*.cjs   text eol=lf
+*.ts    text eol=lf
+*.tsx   text eol=lf
+*.json  text eol=lf
+*.css   text eol=lf
+*.scss  text eol=lf
+*.html  text eol=lf
+*.md    text eol=lf
+*.mdx   text eol=lf
+*.yml   text eol=lf
+*.yaml  text eol=lf
+*.sql   text eol=lf
+*.svg   text eol=lf
+*.env*  text eol=lf
+
+# Treat binary assets as binary: never normalize, never diff as text.
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.webp  binary
+*.woff  binary
+*.woff2 binary
+*.ttf   binary
+*.eot   binary
+*.pdf   binary
+
+# Large media tracked via Git LFS.
 *.mov filter=lfs diff=lfs merge=lfs -text
