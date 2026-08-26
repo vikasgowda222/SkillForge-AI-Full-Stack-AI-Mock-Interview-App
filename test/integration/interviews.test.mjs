@@ -13,6 +13,8 @@ const state = vi.hoisted(() => ({
   gen: null,
   /** Records every db.insert().values(...) payload. */
   inserted: [],
+  /** Records every db.update().set(...) payload. */
+  updated: [],
 }));
 
 vi.mock("@clerk/nextjs/server", () => ({
@@ -55,6 +57,12 @@ vi.mock("@/utils/db", () => {
           state.inserted.push(values);
         }),
       })),
+      update: vi.fn(() => ({
+        set: (values) => {
+          state.updated.push(values);
+          return makeChain(() => Promise.resolve());
+        },
+      })),
       delete: vi.fn(() => makeChain(() => Promise.resolve())),
     },
   };
@@ -64,11 +72,15 @@ vi.mock("@/utils/db", () => {
 import {
   createInterview,
   deleteInterview,
+  disableSharing,
+  enableSharing,
   generateFollowUp,
+  getAnalytics,
   getDashboardStats,
   getFeedback,
   getInterviewById,
   getMyInterviews,
+  getSharedReport,
   saveUserAnswer,
 } from "@/lib/actions/interviews";
 
@@ -88,6 +100,7 @@ beforeEach(() => {
   state.selectQueue = [];
   state.gen = null;
   state.inserted.length = 0;
+  state.updated.length = 0;
   vi.clearAllMocks();
 });
 
@@ -121,6 +134,9 @@ describe("authentication guard", () => {
     await expect(
       generateFollowUp({ mockId: UUID, question: "q", userAnswer: "answer" }),
     ).rejects.toThrow("UNAUTHENTICATED");
+    await expect(enableSharing(UUID)).rejects.toThrow("UNAUTHENTICATED");
+    await expect(disableSharing(UUID)).rejects.toThrow("UNAUTHENTICATED");
+    await expect(getAnalytics()).rejects.toThrow("UNAUTHENTICATED");
   });
 });
 
@@ -302,6 +318,109 @@ describe("generateFollowUp (agentic)", () => {
     await expect(
       generateFollowUp({ mockId: UUID, question: "q", userAnswer: "answer" }),
     ).rejects.toThrow();
+  });
+});
+
+describe("sharing", () => {
+  it("enableSharing mints a token for an owned interview", async () => {
+    state.selectQueue = [[{ ...ownedRow, shareId: null }]];
+    const result = await enableSharing(UUID);
+    expect(typeof result.shareId).toBe("string");
+    expect(result.shareId.length).toBeGreaterThan(0);
+    expect(state.updated).toHaveLength(1);
+    expect(state.updated[0].shareId).toBe(result.shareId);
+  });
+
+  it("enableSharing reuses an existing token (no new write)", async () => {
+    state.selectQueue = [[{ ...ownedRow, shareId: "existing-token" }]];
+    const result = await enableSharing(UUID);
+    expect(result.shareId).toBe("existing-token");
+    expect(state.updated).toHaveLength(0);
+  });
+
+  it("enableSharing throws NOT_FOUND when not owned", async () => {
+    state.selectQueue = [[]];
+    await expect(enableSharing(UUID)).rejects.toThrow("NOT_FOUND");
+  });
+
+  it("disableSharing clears the token for an owned interview", async () => {
+    state.selectQueue = [[{ ...ownedRow, shareId: "t" }]];
+    await expect(disableSharing(UUID)).resolves.toEqual({ ok: true });
+    expect(state.updated[0].shareId).toBeNull();
+  });
+
+  it("getSharedReport returns null for an unknown token", async () => {
+    state.selectQueue = [[]];
+    await expect(getSharedReport("nope")).resolves.toBeNull();
+  });
+
+  it("getSharedReport returns a sanitized report (no userId/email)", async () => {
+    const answers = [
+      {
+        id: 1,
+        question: "Q1",
+        rating: 8,
+        feedback: "Good",
+        userId: "user_123",
+        userEmail: "secret@example.com",
+        userAns: "private answer",
+        scoreCorrectness: 8,
+        scoreClarity: 7,
+        scoreDepth: 6,
+        scoreCommunication: 9,
+      },
+    ];
+    state.selectQueue = [[{ ...ownedRow, shareId: "tok" }], answers];
+    const report = await getSharedReport("tok");
+    expect(report.jobPosition).toBe("Engineer");
+    expect(report.answers).toHaveLength(1);
+    // Sensitive fields must not leak into a public report.
+    const serialized = JSON.stringify(report);
+    expect(serialized).not.toContain("user_123");
+    expect(serialized).not.toContain("secret@example.com");
+    expect(serialized).not.toContain("private answer");
+  });
+});
+
+describe("getAnalytics", () => {
+  it("builds a timeline, skill averages, and distribution", async () => {
+    const answers = [
+      {
+        rating: 4,
+        scoreCorrectness: 4,
+        scoreClarity: 5,
+        scoreDepth: 3,
+        scoreCommunication: 6,
+      },
+      {
+        rating: 8,
+        scoreCorrectness: 8,
+        scoreClarity: 7,
+        scoreDepth: 9,
+        scoreCommunication: 8,
+      },
+      { rating: null }, // unscored: ignored
+    ];
+    state.selectQueue = [answers];
+    const a = await getAnalytics();
+    expect(a.totalScored).toBe(2);
+    expect(a.timeline).toEqual([
+      { index: 1, rating: 4 },
+      { index: 2, rating: 8 },
+    ]);
+    expect(a.skillAverages.correctness).toBe(6); // (4+8)/2
+    const nineToTen = a.distribution.find((d) => d.band === "9-10");
+    const threeToFour = a.distribution.find((d) => d.band === "3-4");
+    expect(threeToFour.count).toBe(1); // rating 4
+    expect(nineToTen.count).toBe(0);
+  });
+
+  it("returns empty analytics with no answers", async () => {
+    state.selectQueue = [[]];
+    const a = await getAnalytics();
+    expect(a.totalScored).toBe(0);
+    expect(a.timeline).toEqual([]);
+    expect(a.skillAverages.correctness).toBeNull();
   });
 });
 

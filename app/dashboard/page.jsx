@@ -1,6 +1,14 @@
 import React from "react";
+import Link from "next/link";
 import { currentUser } from "@clerk/nextjs/server";
-import { Bot, ListChecks, Trophy, TrendingUp, Zap } from "lucide-react";
+import {
+  BarChart3,
+  Bot,
+  ListChecks,
+  Trophy,
+  TrendingUp,
+  Zap,
+} from "lucide-react";
 
 import AddNewInterview from "./_components/AddNewInterview";
 import InterviewList from "./_components/InterviewList";
@@ -45,6 +53,13 @@ export default async function Dashboard() {
           </h3>
         </div>
         <div className="flex items-center gap-4">
+          <Link
+            href="/dashboard/analytics"
+            className="inline-flex items-center gap-2 rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+          >
+            <BarChart3 size={16} />
+            Analytics
+          </Link>
           <span className="text-gray-500 text-sm sm:text-base">
             {user?.primaryEmailAddress?.emailAddress || ""}
           </span>

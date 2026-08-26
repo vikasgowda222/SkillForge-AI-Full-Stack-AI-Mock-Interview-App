@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import RubricBreakdown from "@/components/interview/RubricBreakdown";
+import ShareControls from "./ShareControls";
 
 const getRatingColor = (rating) => {
   const numRating = Number(rating);
@@ -19,7 +20,7 @@ const getRatingColor = (rating) => {
   return "text-red-600";
 };
 
-const FeedbackView = ({ answers = [] }) => {
+const FeedbackView = ({ answers = [], interview = null }) => {
   const router = useRouter();
 
   const averageRating = useMemo(() => {
@@ -93,6 +94,23 @@ const FeedbackView = ({ answers = [] }) => {
           </CardContent>
         </Card>
       </div>
+
+      {interview?.mockId ? (
+        <div className="max-w-4xl mx-auto mb-8 rounded-lg border bg-white p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 className="font-semibold text-gray-800">Share this report</h3>
+              <p className="text-sm text-gray-500">
+                Publish a read-only link recruiters can open without signing in.
+              </p>
+            </div>
+            <ShareControls
+              mockId={interview.mockId}
+              initialShareId={interview.shareId ?? null}
+            />
+          </div>
+        </div>
+      ) : null}
 
       <div className="max-w-4xl mx-auto space-y-4">
         <h3 className="text-xl font-semibold text-gray-700">
