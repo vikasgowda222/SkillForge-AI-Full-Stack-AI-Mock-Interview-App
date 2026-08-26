@@ -4,6 +4,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { Mic, StopCircle, Loader2, Camera, CameraOff } from "lucide-react";
 import { toast } from "sonner";
 import { saveUserAnswer } from "@/lib/actions/interviews";
+import RubricBreakdown from "@/components/interview/RubricBreakdown";
 
 const RecordAnswerSection = ({
   mockInterviewQuestion,
@@ -15,6 +16,7 @@ const RecordAnswerSection = ({
   const [loading, setLoading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [stream, setStream] = useState(null);
+  const [lastRubric, setLastRubric] = useState(null);
   const recognitionRef = useRef(null);
   const webcamRef = useRef(null);
 
@@ -128,16 +130,21 @@ const RecordAnswerSection = ({
     try {
       const currentQuestion = mockInterviewQuestion?.[activeQuestionIndex];
 
-      await saveUserAnswer({
+      const result = await saveUserAnswer({
         mockId: interviewData?.mockId,
         question: currentQuestion?.question,
         correctAns: currentQuestion?.answer ?? null,
         userAnswer,
       });
 
+      // Capture the answer that was just scored *before* clearing state, so the
+      // parent can offer an adaptive follow-up on it.
+      const answered = { question: currentQuestion?.question, userAnswer };
+
+      setLastRubric(result?.rubric ?? null);
       toast.success("Answer recorded successfully");
       setUserAnswer("");
-      onAnswerSave?.();
+      onAnswerSave?.(answered);
     } catch (error) {
       toast.error("Failed to save answer", {
         description: "Please try again in a moment.",
@@ -225,6 +232,15 @@ const RecordAnswerSection = ({
           "Save Answer"
         )}
       </Button>
+
+      {lastRubric && (
+        <div className="mt-6 w-full max-w-md rounded-lg border bg-gray-50 p-4">
+          <p className="mb-3 text-sm font-semibold text-gray-700">
+            Your last answer — scored across the rubric
+          </p>
+          <RubricBreakdown scores={lastRubric} />
+        </div>
+      )}
     </div>
   );
 };

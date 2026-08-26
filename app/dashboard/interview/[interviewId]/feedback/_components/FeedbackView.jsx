@@ -9,6 +9,7 @@ import { CheckCircle2, XCircle, ChevronsUpDown, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import RubricBreakdown from "@/components/interview/RubricBreakdown";
 
 const getRatingColor = (rating) => {
   const numRating = Number(rating);
@@ -151,6 +152,15 @@ const FeedbackView = ({ answers = [] }) => {
                   {item.feedback}
                 </p>
               </div>
+              <RubricBreakdown
+                className="mt-4 rounded-lg border bg-gray-50 p-3"
+                scores={{
+                  correctness: item.scoreCorrectness,
+                  clarity: item.scoreClarity,
+                  depth: item.scoreDepth,
+                  communication: item.scoreCommunication,
+                }}
+              />
               <div className="mt-4 text-right">
                 <span className={`font-bold ${getRatingColor(item.rating)}`}>
                   Rating: {item.rating ?? "N/A"}/10
