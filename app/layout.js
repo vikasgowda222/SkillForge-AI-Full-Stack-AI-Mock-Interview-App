@@ -1,17 +1,16 @@
 import localFont from "next/font/local";
 import "./globals.css";
-import { ClerkProvider } from '@clerk/nextjs';
+import { ClerkProvider } from "@clerk/nextjs";
 import { Toaster } from "@/components/ui/sonner";
-import Footer from "./dashboard/_components/Footer";
-import Header from "./dashboard/_components/Header";
-import { OpenGraph } from 'next/dist/lib/metadata/types/opengraph-types';
+import Footer from "@/components/layout/Footer";
+import Header from "@/components/layout/Header";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
   variable: "--font-geist-sans",
   weight: "100 900",
   display: "swap",
-  fallback: ['system-ui', 'arial', 'sans-serif']
+  fallback: ["system-ui", "arial", "sans-serif"],
 });
 
 const geistMono = localFont({
@@ -19,126 +18,123 @@ const geistMono = localFont({
   variable: "--font-geist-mono",
   weight: "100 900",
   display: "swap",
-  fallback: ['Courier New', 'monospace']
+  fallback: ["Courier New", "monospace"],
 });
 
+const siteUrl =
+  process.env.NEXT_PUBLIC_SITE_URL || "https://skillforge-ai.vercel.app";
+
 export const metadata = {
-  metadataBase: new URL('https://www.mockmateai.com'),
+  metadataBase: new URL(siteUrl),
   title: {
-    default: 'SkillForge AI - AI-Powered Interview Preparation',
-    template: '%s | SkillForge AI'
+    default: "SkillForge AI - AI-Powered Interview Preparation",
+    template: "%s | SkillForge AI",
   },
-  description: 'Elevate your interview skills with AI-powered mock interviews. Get personalized coaching, real-time feedback, and boost your confidence.',
+  description:
+    "Elevate your interview skills with AI-powered mock interviews. Get personalized coaching, real-time feedback, and boost your confidence.",
   keywords: [
-    'AI interview preparation', 
-    'mock interviews', 
-    'interview coaching', 
-    'career development', 
-    'job interview help'
+    "AI interview preparation",
+    "mock interviews",
+    "interview coaching",
+    "career development",
+    "job interview help",
   ],
-  authors: [{ name: 'SkillForge AI' }],
-  creator: 'SkillForge AI',
-  publisher: 'SkillForge AI',
-  
+  authors: [{ name: "SkillForge AI" }],
+  creator: "SkillForge AI",
+  publisher: "SkillForge AI",
+
   openGraph: {
-    type: 'website',
-    locale: 'en_US',
-    url: 'https://mockmateai-eta.vercel.app/',
-    title: 'SkillForge AI - AI-Powered Interview Preparation',
-    description: 'Elevate your interview skills with AI-powered mock interviews. Get personalized coaching, real-time feedback, and boost your confidence.',
-    siteName: 'SkillForge AI',
+    type: "website",
+    locale: "en_US",
+    url: "/",
+    title: "SkillForge AI - AI-Powered Interview Preparation",
+    description:
+      "Elevate your interview skills with AI-powered mock interviews. Get personalized coaching, real-time feedback, and boost your confidence.",
+    siteName: "SkillForge AI",
     images: [
       {
-        url: '/og-image.png',
+        url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: 'SkillForge AI - Revolutionizing Interview Preparation'
-      }
-    ]
+        alt: "SkillForge AI - Revolutionizing Interview Preparation",
+      },
+    ],
   },
-  
+
   twitter: {
-    card: 'summary_large_image',
-    title: 'SkillForge AI - AI-Powered Interview Preparation',
-    description: 'Elevate your interview skills with AI-powered mock interviews. Get personalized coaching, real-time feedback, and boost your confidence.',
-    creator: '@SkillForge AI',
-    images: ['/twitter-image.png']
+    card: "summary_large_image",
+    title: "SkillForge AI - AI-Powered Interview Preparation",
+    description:
+      "Elevate your interview skills with AI-powered mock interviews. Get personalized coaching, real-time feedback, and boost your confidence.",
+    images: ["/twitter-image.png"],
   },
-  
+
   robots: {
     index: true,
     follow: true,
     googleBot: {
       index: true,
       follow: true,
-      'max-video-preview': -1,
-      'max-image-preview': 'large',
-      'max-snippet': -1
-    }
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
   },
-  
-  verification: {
-    google: 'your-google-site-verification-code',
-    // Add other verification codes as needed
-  }
 };
 
 export default function RootLayout({ children }) {
   return (
     <ClerkProvider>
-      <html 
-        lang="en" 
-        className={`${geistSans.variable} ${geistMono.variable}`}
-      >
-        <body 
+      <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
+        <body
           className={`
-            antialiased 
-            min-h-screen 
-            flex 
-            flex-col 
-            bg-white 
-            text-gray-900 
+            antialiased
+            min-h-screen
+            flex
+            flex-col
+            bg-white
+            text-gray-900
             font-sans
           `}
         >
-          <a 
-            href="#main-content" 
+          <a
+            href="#main-content"
             className="
-              absolute 
-              top-[-999px] 
-              left-[-999px] 
-              z-[-1] 
-              focus:top-0 
-              focus:left-0 
-              focus:z-50 
-              p-4 
-              bg-indigo-600 
+              absolute
+              top-[-999px]
+              left-[-999px]
+              z-[-1]
+              focus:top-0
+              focus:left-0
+              focus:z-50
+              p-4
+              bg-indigo-600
               text-white
             "
           >
             Skip to main content
           </a>
-          
+
           <Header />
           <Toaster />
-          
-          <main 
-            id="main-content" 
+
+          <main
+            id="main-content"
             className="
-              flex-grow 
-              pt-16 
-              sm:pt-20 
-              max-w-7xl 
-              mx-auto 
-              w-full 
-              px-4 
-              sm:px-6 
+              flex-grow
+              pt-16
+              sm:pt-20
+              max-w-7xl
+              mx-auto
+              w-full
+              px-4
+              sm:px-6
               lg:px-8
             "
           >
             {children}
           </main>
-          
+
           <Footer />
         </body>
       </html>
