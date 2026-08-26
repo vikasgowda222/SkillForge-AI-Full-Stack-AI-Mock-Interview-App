@@ -64,6 +64,7 @@ vi.mock("@/utils/db", () => {
 import {
   createInterview,
   deleteInterview,
+  generateFollowUp,
   getDashboardStats,
   getFeedback,
   getInterviewById,
@@ -116,6 +117,9 @@ describe("authentication guard", () => {
     await expect(deleteInterview(UUID)).rejects.toThrow("UNAUTHENTICATED");
     await expect(
       saveUserAnswer({ mockId: UUID, question: "q", userAnswer: "an answer" }),
+    ).rejects.toThrow("UNAUTHENTICATED");
+    await expect(
+      generateFollowUp({ mockId: UUID, question: "q", userAnswer: "answer" }),
     ).rejects.toThrow("UNAUTHENTICATED");
   });
 });
@@ -205,7 +209,14 @@ describe("saveUserAnswer (ownership)", () => {
 
   it("scores and stores the answer for an owned interview", async () => {
     state.selectQueue = [[ownedRow]];
-    state.gen = { rating: 8, feedback: "Clear and well-structured." };
+    state.gen = {
+      correctness: 8,
+      clarity: 7,
+      depth: 6,
+      communication: 9,
+      overallRating: 8,
+      feedback: "Clear and well-structured.",
+    };
 
     const result = await saveUserAnswer({
       mockId: UUID,
@@ -213,19 +224,83 @@ describe("saveUserAnswer (ownership)", () => {
       userAnswer: "A function bundled with its lexical scope.",
     });
 
-    expect(result).toEqual({
-      rating: 8,
-      feedback: "Clear and well-structured.",
+    expect(result.rating).toBe(8);
+    expect(result.feedback).toBe("Clear and well-structured.");
+    expect(result.rubric).toEqual({
+      correctness: 8,
+      clarity: 7,
+      depth: 6,
+      communication: 9,
     });
     expect(state.inserted).toHaveLength(1);
     expect(state.inserted[0].userId).toBe("user_123");
     expect(state.inserted[0].mockIdRef).toBe(UUID);
     expect(state.inserted[0].rating).toBe(8);
+    expect(state.inserted[0].scoreCorrectness).toBe(8);
+    expect(state.inserted[0].scoreCommunication).toBe(9);
+  });
+
+  it("derives the overall rating from the mean when the model omits it", async () => {
+    state.selectQueue = [[ownedRow]];
+    state.gen = {
+      correctness: 6,
+      clarity: 7,
+      depth: 5,
+      communication: 8,
+      // no overallRating -> mean(6,7,5,8) = 6.5 -> rounds to 7
+      feedback: "Solid answer with room to go deeper.",
+    };
+
+    const result = await saveUserAnswer({
+      mockId: UUID,
+      question: "Explain event loop.",
+      userAnswer: "The event loop processes the callback queue.",
+    });
+
+    expect(result.rating).toBe(7);
+    expect(state.inserted[0].rating).toBe(7);
+  });
+
+  it("rejects and stores nothing when the rubric is invalid", async () => {
+    state.selectQueue = [[ownedRow]];
+    state.gen = { correctness: 99, clarity: 7, depth: 6, communication: 9 };
+    await expect(
+      saveUserAnswer({ mockId: UUID, question: "q", userAnswer: "an answer" }),
+    ).rejects.toThrow();
+    expect(state.inserted).toHaveLength(0);
   });
 
   it("rejects a non-uuid mockId", async () => {
     await expect(
       saveUserAnswer({ mockId: "nope", question: "q", userAnswer: "answer" }),
+    ).rejects.toThrow();
+  });
+});
+
+describe("generateFollowUp (agentic)", () => {
+  it("throws NOT_FOUND when the interview is not owned", async () => {
+    state.selectQueue = [[]];
+    await expect(
+      generateFollowUp({ mockId: UUID, question: "q", userAnswer: "answer" }),
+    ).rejects.toThrow("NOT_FOUND");
+  });
+
+  it("returns a follow-up question for an owned interview", async () => {
+    state.selectQueue = [[ownedRow]];
+    state.gen = { question: "Can you give a concrete example?" };
+    const result = await generateFollowUp({
+      mockId: UUID,
+      question: "What is a closure?",
+      userAnswer: "A function with its scope.",
+    });
+    expect(result).toEqual({ question: "Can you give a concrete example?" });
+  });
+
+  it("rejects an empty follow-up from the model", async () => {
+    state.selectQueue = [[ownedRow]];
+    state.gen = { question: "" };
+    await expect(
+      generateFollowUp({ mockId: UUID, question: "q", userAnswer: "answer" }),
     ).rejects.toThrow();
   });
 });
@@ -279,5 +354,44 @@ describe("getDashboardStats (NaN-safe aggregation)", () => {
     const stats = await getDashboardStats();
     expect(stats.bestScore).toBe(6);
     expect(stats.averageScore).toBe(6);
+  });
+
+  it("averages rubric dimensions NaN-safely (null when unscored)", async () => {
+    const answers = [
+      {
+        rating: 8,
+        scoreCorrectness: 8,
+        scoreClarity: 6,
+        scoreDepth: 7,
+        scoreCommunication: 9,
+      },
+      {
+        rating: 6,
+        scoreCorrectness: 6,
+        scoreClarity: 8,
+        scoreDepth: 5,
+        scoreCommunication: null, // one dimension missing
+      },
+    ];
+    state.selectQueue = [[{ id: 1 }], answers];
+    const stats = await getDashboardStats();
+    expect(stats.skillAverages).toEqual({
+      correctness: 7, // (8+6)/2
+      clarity: 7, // (6+8)/2
+      depth: 6, // (7+5)/2
+      communication: 9, // only one present
+    });
+  });
+
+  it("returns null skill averages when no answer has rubric scores", async () => {
+    const answers = [{ rating: 4 }, { rating: 7 }];
+    state.selectQueue = [[{ id: 1 }], answers];
+    const stats = await getDashboardStats();
+    expect(stats.skillAverages).toEqual({
+      correctness: null,
+      clarity: null,
+      depth: null,
+      communication: null,
+    });
   });
 });
