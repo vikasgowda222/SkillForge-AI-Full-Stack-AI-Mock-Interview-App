@@ -1,15 +1,49 @@
 version: 2
 updates:
+  # ----------------------------------------------------------------------------
+  # npm dependencies
+  #
+  # Policy: Dependabot keeps us patched automatically for the SAFE updates
+  # (minor + patch), grouped into one PR per week so CI runs once. MAJOR updates
+  # of framework-level packages are deliberately NOT automated — they require
+  # code migration (e.g. Next's async `params`, React 19, Clerk/Zod API changes)
+  # and must land as their own reviewed effort, not a surprise grouped bump that
+  # breaks `main`. Non-framework majors still open as individual PRs so they can
+  # be reviewed one at a time.
+  # ----------------------------------------------------------------------------
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 10
     groups:
-      production-dependencies:
+      production-minor-patch:
         dependency-type: "production"
-      dev-dependencies:
+        update-types:
+          - "minor"
+          - "patch"
+      dev-minor-patch:
         dependency-type: "development"
+        update-types:
+          - "minor"
+          - "patch"
+    ignore:
+      # Framework majors are upgraded intentionally in a dedicated PR, with the
+      # matching code migration and full re-test — never as an automated bump.
+      - dependency-name: "next"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "eslint-config-next"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react-dom"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@clerk/nextjs"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "zod"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "github-actions"
     directory: "/"
