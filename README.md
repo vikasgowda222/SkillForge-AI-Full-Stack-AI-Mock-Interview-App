@@ -174,7 +174,6 @@ Items that aren't directly represented yet are listed honestly under
 | Analytics | Resume upload | GitHub personalize | Eval report |
 | --- | --- | --- | --- |
 | ![Analytics](public/screenshots/analytics.png) | ![Resume](public/screenshots/resume.png) | ![GitHub](public/screenshots/github.png) | ![Eval](public/screenshots/eval.png) |
-
 ---
 
 ## Architecture
@@ -226,7 +225,6 @@ flowchart LR
 ```
 
 ASCII version:
-
 ```
 Browser (Client Components)
    │  calls Server Actions only
@@ -242,8 +240,7 @@ pgvector)      (structured     transcript      (:8000)
                output)         memory)
    │                                │
    └────────── LangSmith tracing ───┘
-            (env-driven, zero code)
-```
+            (env-driven, zero code)```
 
 ### Key contracts
 
@@ -306,7 +303,6 @@ pgvector)      (structured     transcript      (:8000)
 | Validation      | Zod (+ Pydantic on the Python side) + JSDoc types                 |
 | Testing         | Vitest (66 tests), Playwright smoke, FastAPI `/docs` for eval     |
 | Tooling         | ESLint, Prettier                                                  |
-
 ---
 
 ## Getting started
@@ -315,40 +311,6 @@ pgvector)      (structured     transcript      (:8000)
 
 - Node.js 18.18+ (or 20+)
 - Python 3.10+ (required — the FastAPI eval microservice is part of the core stack)
-- A Neon Postgres database (with the `vector` extension available)
-- A Clerk application (publishable + secret keys)
-- A Google Gemini API key
-- (Optional) A LangSmith API key for tracing
-
-### 1. Install — JavaScript / Node.js
-
-```bash
-npm install
-```
-
-### 2. Install — Python + FastAPI (required)
-
-The FastAPI service is part of the core stack, not optional. It hosts the
-LLM evaluation endpoint and shares the same fixtures and metrics contract
-as the JS harness.
-
-```bash
-cd python
-python -m venv .venv
-. .venv/Scripts/Activate.ps1     # or: source .venv/bin/activate
-pip install -r requirements.txt
-```
-
-### 3. Configure environment
-
-```bash
-cp .env.example .env.local
-```
-
-Fill in `DATABASE_URL`, `GEMINI_API_KEY`, Clerk keys, and optionally the
-LangSmith trio (`LANGCHAIN_TRACING_V2`, `LANGCHAIN_API_KEY`,
-`LANGCHAIN_PROJECT`). The Python service reads from the same `.env.local`.
-
 > **Security:** `DATABASE_URL`, `GEMINI_API_KEY`, and `LANGCHAIN_API_KEY`
 > are **server-only**. Never prefix them with `NEXT_PUBLIC_`.
 
@@ -372,7 +334,6 @@ EVAL_SERVICE_URL=http://localhost:8000 npm run eval
 ```
 
 ### 6. Run the web app
-
 ```bash
 npm run dev
 ```
@@ -395,7 +356,6 @@ Open [http://localhost:3000](http://localhost:3000).
 | `npm run rag:embed`     | Bulk-embed a resume into pgvector                              |
 
 ---
-
 ## Project structure
 
 ```
@@ -405,8 +365,7 @@ components/
   layout/                Header / Footer
   ui/                    shadcn/ui primitives
 lib/
-  actions/interviews.js  Server Actions (the only db/AI entry point)
-  ai/gemini.js           LangChain ChatGoogleGenerativeAI + Zod structured output
+  actions/interviews.js  Server Actions (the only db/AI entry point)  ai/gemini.js           LangChain ChatGoogleGenerativeAI + Zod structured output
   ai/followup-graph.js   LangGraph StateGraph for adaptive follow-ups
   ai/rag.js              Chunking + embeddings + pgvector retrieval
   parsing/pdf.js         Server-side PDF text extraction
@@ -424,8 +383,7 @@ scripts/
   eval.js                LLM evaluation harness (LangChain or HTTP)
   embed-resume.js        Bulk-embed a resume into pgvector
   ensure-vector.mjs      Bootstrap pgvector on Neon
-public/screenshots/      README screenshots (drop in PNGs)
-test/                    Vitest unit + integration tests
+public/screenshots/      README screenshots (drop in PNGs)test/                    Vitest unit + integration tests
 e2e/                     Playwright smoke tests
 ```
 
@@ -498,7 +456,6 @@ LangSmith tracing, LangChain + Zod pipeline, FastAPI eval microservice.
   optional Django admin for the eval service
 - **Cloud-managed pieces** — AWS / Terraform templates for Neon +
   Clerk + LangSmith provisioning
-
 ## License
 
 [MIT](LICENSE) © Vikas Gowda
