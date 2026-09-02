@@ -89,19 +89,19 @@ pgvector)      LangGraph
 
 ## Tech stack
 
-| Area        | Choice                                                  |
-| ----------- | ------------------------------------------------------- |
-| Framework   | Next.js 14 (App Router), React 18                       |
-| Auth        | Clerk (`@clerk/nextjs`)                                 |
-| Database    | Neon serverless Postgres + Drizzle ORM + pgvector       |
+| Area        | Choice                                                       |
+| ----------- | ------------------------------------------------------------ |
+| Framework   | Next.js 14 (App Router), React 18                            |
+| Auth        | Clerk (`@clerk/nextjs`)                                      |
+| Database    | Neon serverless Postgres + Drizzle ORM + pgvector            |
 | AI runtime  | LangChain (`ChatGoogleGenerativeAI`, StructuredOutputParser) |
-| Agent graph | LangGraph (`StateGraph`, tool calling, transcript state) |
-| Embeddings  | Google `text-embedding-004`                             |
-| Tracing     | LangSmith (env-driven, zero code)                       |
-| Validation  | Zod (+ JSDoc types)                                     |
-| UI          | Tailwind CSS + shadcn/ui, lucide-react, sonner          |
-| Testing     | Vitest (unit + integration), Playwright (E2E smoke)     |
-| Tooling     | ESLint (next/core-web-vitals), Prettier                 |
+| Agent graph | LangGraph (`StateGraph`, tool calling, transcript state)     |
+| Embeddings  | Google `text-embedding-004`                                  |
+| Tracing     | LangSmith (env-driven, zero code)                            |
+| Validation  | Zod (+ JSDoc types)                                          |
+| UI          | Tailwind CSS + shadcn/ui, lucide-react, sonner               |
+| Testing     | Vitest (unit + integration), Playwright (E2E smoke)          |
+| Tooling     | ESLint (next/core-web-vitals), Prettier                      |
 
 ---
 
@@ -172,22 +172,22 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Scripts
 
-| Script                  | Purpose                                                        |
-| ----------------------- | -------------------------------------------------------------- |
-| `npm run dev`           | Start the dev server                                           |
-| `npm run build`         | Production build                                               |
-| `npm run start`         | Serve the production build                                     |
-| `npm run lint`          | ESLint (`next/core-web-vitals`)                                |
-| `npm run format`        | Format with Prettier                                           |
-| `npm run format:check`  | Verify formatting (used in CI)                                 |
-| `npm run test`          | Run unit + integration tests (Vitest)                          |
-| `npm run test:watch`    | Vitest in watch mode                                           |
-| `npm run test:e2e`      | Playwright E2E smoke tests (needs real env)                    |
-| `npm run db:generate`   | Generate Drizzle migration from the schema                     |
-| `npm run db:push`       | Push the schema to the database                                |
-| `npm run db:studio`     | Open Drizzle Studio                                            |
-| `npm run eval`          | Run the LLM evaluation harness (`scripts/eval.js`)             |
-| `npm run rag:embed`     | Embed a resume file into the pgvector store (`scripts/embed-resume.js`) |
+| Script                 | Purpose                                                                 |
+| ---------------------- | ----------------------------------------------------------------------- |
+| `npm run dev`          | Start the dev server                                                    |
+| `npm run build`        | Production build                                                        |
+| `npm run start`        | Serve the production build                                              |
+| `npm run lint`         | ESLint (`next/core-web-vitals`)                                         |
+| `npm run format`       | Format with Prettier                                                    |
+| `npm run format:check` | Verify formatting (used in CI)                                          |
+| `npm run test`         | Run unit + integration tests (Vitest)                                   |
+| `npm run test:watch`   | Vitest in watch mode                                                    |
+| `npm run test:e2e`     | Playwright E2E smoke tests (needs real env)                             |
+| `npm run db:generate`  | Generate Drizzle migration from the schema                              |
+| `npm run db:push`      | Push the schema to the database                                         |
+| `npm run db:studio`    | Open Drizzle Studio                                                     |
+| `npm run eval`         | Run the LLM evaluation harness (`scripts/eval.js`)                      |
+| `npm run rag:embed`    | Embed a resume file into the pgvector store (`scripts/embed-resume.js`) |
 
 ## Testing
 

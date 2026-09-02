@@ -22,11 +22,8 @@ import { config } from "dotenv";
 config({ path: ".env.local" });
 
 const { generateStructured } = await import("../lib/ai/gemini.js");
-const {
-  aiRubricSchema,
-  RUBRIC_DIMENSIONS,
-  overallFromRubric,
-} = await import("../lib/validation/interview.js");
+const { aiRubricSchema, RUBRIC_DIMENSIONS, overallFromRubric } =
+  await import("../lib/validation/interview.js");
 
 const RUBRIC_PROMPT = [
   "You are a senior interview evaluator. Score the candidate's answer on a",
@@ -105,17 +102,18 @@ async function main() {
   const args = process.argv.slice(2);
   const jsonOut = args.includes("--json");
   const writeIdx = args.findIndex((a) => a.startsWith("--write="));
-  const writePath = writeIdx >= 0 ? args[writeIdx].slice("--write=".length) : null;
+  const writePath =
+    writeIdx >= 0 ? args[writeIdx].slice("--write=".length) : null;
 
   const tracing =
-    process.env.LANGCHAIN_TRACING_V2 === "true" && !!process.env.LANGCHAIN_API_KEY;
+    process.env.LANGCHAIN_TRACING_V2 === "true" &&
+    !!process.env.LANGCHAIN_API_KEY;
 
   const samples = [];
   for (const f of FIXTURES) {
     const a = await scoreOne(f, 0.4);
     const b = await scoreOne(f, 0.4);
-    const stability =
-      a.ok && b.ok ? Math.abs(a.overall - b.overall) : null;
+    const stability = a.ok && b.ok ? Math.abs(a.overall - b.overall) : null;
     samples.push({
       name: f.name,
       ok: a.ok,
@@ -142,7 +140,9 @@ async function main() {
     fixtureCount: FIXTURES.length,
     validCount: valid.length,
     inBandCount,
-    inBandAccuracy: valid.length ? Number((inBandCount / valid.length).toFixed(2)) : null,
+    inBandAccuracy: valid.length
+      ? Number((inBandCount / valid.length).toFixed(2))
+      : null,
     avgStability,
     rubricDimensions: RUBRIC_DIMENSIONS,
     model: process.env.GEMINI_MODEL ?? "gemini-1.5-flash",
@@ -162,7 +162,9 @@ async function main() {
   lines.push(`- Fixtures: ${summary.fixtureCount}`);
   lines.push(`- Valid parses: ${summary.validCount}/${summary.fixtureCount}`);
   lines.push(`- In-band accuracy: ${summary.inBandAccuracy ?? "n/a"}`);
-  lines.push(`- Avg stability (|Δrating| across 2 runs): ${summary.avgStability ?? "n/a"}`);
+  lines.push(
+    `- Avg stability (|Δrating| across 2 runs): ${summary.avgStability ?? "n/a"}`,
+  );
   lines.push(`- Model: \`${summary.model}\``);
   lines.push(
     `- LangSmith tracing: ${summary.tracing.enabled ? `enabled (project \`${summary.tracing.project}\`)` : "disabled — set LANGCHAIN_TRACING_V2=true and LANGCHAIN_API_KEY to enable"}`,

@@ -332,7 +332,9 @@ describe("generateFollowUp (LangGraph conductor)", () => {
     expect(state.followupCalls).toHaveLength(1);
     expect(state.followupCalls[0].jobPosition).toBe("Engineer");
     expect(state.followupCalls[0].question).toBe("What is a closure?");
-    expect(state.followupCalls[0].userAnswer).toBe("A function with its scope.");
+    expect(state.followupCalls[0].userAnswer).toBe(
+      "A function with its scope.",
+    );
     expect(state.followupCalls[0].previousQuestions).toEqual([]);
   });
 

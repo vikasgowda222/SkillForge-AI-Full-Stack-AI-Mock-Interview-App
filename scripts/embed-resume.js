@@ -20,7 +20,9 @@ const { indexResume } = await import("../lib/ai/rag.js");
 async function main() {
   const [, , filePath, userIdArg] = process.argv;
   if (!filePath) {
-    console.error("Usage: node scripts/embed-resume.js <path-to-resume.txt> [userId]");
+    console.error(
+      "Usage: node scripts/embed-resume.js <path-to-resume.txt> [userId]",
+    );
     process.exit(2);
   }
   const abs = path.resolve(filePath);
