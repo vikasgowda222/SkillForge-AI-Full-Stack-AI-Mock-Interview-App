@@ -1,25 +1,27 @@
 /**
  * LLM evaluation harness.
  *
- * Runs a fixed set of rubric-style prompts through the same Zod-validated
- * pipeline that `saveUserAnswer` uses, then scores the output against:
- *   - Schema conformance (does it parse against aiRubricSchema?)
- *   - Score-in-range (every dimension in 0-10?)
- *   - Rating-stability (does the score match the rubric on retry?)
- *   - Comment-quality heuristics (length, presence of concrete critique)
+ * Two modes:
+ *   1. Local (default): runs fixtures through the LangChain pipeline directly.
+ *   2. Remote: POSTs to a FastAPI service (EVAL_SERVICE_URL) and prints the
+ *      report returned from /v1/eval. The remote mode is what CI uses — same
+ *      fixtures, same metrics, no Node dependency in the eval loop.
  *
  * Usage:
- *   node scripts/eval.js                  # prints a markdown report
- *   node scripts/eval.js --json           # prints JSON instead
- *   node scripts/eval.js --write=out.md   # writes the markdown report
+ *   node scripts/eval.js                            # local LangChain run
+ *   EVAL_SERVICE_URL=http://localhost:8000 node scripts/eval.js
+ *   node scripts/eval.js --json
+ *   node scripts/eval.js --write=out.md
  *
  * Reads the same env vars as the app (GEMINI_API_KEY, LANGCHAIN_TRACING_V2,
  * LANGCHAIN_API_KEY, LANGCHAIN_PROJECT). When tracing env vars are present,
- * every eval invocation shows up in LangSmith under `LANGCHAIN_PROJECT`.
+ * every local invocation shows up in LangSmith under LANGCHAIN_PROJECT.
  */
 
 import { config } from "dotenv";
 config({ path: ".env.local" });
+
+const EVAL_SERVICE_URL = process.env.EVAL_SERVICE_URL;
 
 const { generateStructured } = await import("../lib/ai/gemini.js");
 const { aiRubricSchema, RUBRIC_DIMENSIONS, overallFromRubric } =
@@ -37,11 +39,6 @@ const RUBRIC_PROMPT = [
   "- communication: structure, conciseness, and delivery",
 ].join("\n");
 
-/**
- * Small fixture set: question, candidate answer, expected rubric band.
- * Bands are loose ranges the human rater agreed on — used to compute the
- * "in-band" accuracy metric at the end.
- */
 const FIXTURES = [
   {
     name: "Strong closure answer",
@@ -98,17 +95,7 @@ function scoreOne(fixture, temperature) {
     .catch((err) => ({ ok: false, error: String(err.message ?? err) }));
 }
 
-async function main() {
-  const args = process.argv.slice(2);
-  const jsonOut = args.includes("--json");
-  const writeIdx = args.findIndex((a) => a.startsWith("--write="));
-  const writePath =
-    writeIdx >= 0 ? args[writeIdx].slice("--write=".length) : null;
-
-  const tracing =
-    process.env.LANGCHAIN_TRACING_V2 === "true" &&
-    !!process.env.LANGCHAIN_API_KEY;
-
+async function runLocal() {
   const samples = [];
   for (const f of FIXTURES) {
     const a = await scoreOne(f, 0.4);
@@ -124,7 +111,6 @@ async function main() {
       error: a.ok ? null : a.error,
     });
   }
-
   const valid = samples.filter((s) => s.ok);
   const inBandCount = valid.filter((s) => s.inBand).length;
   const avgStability =
@@ -135,27 +121,42 @@ async function main() {
             valid.reduce((s, x) => s + (x.stability ?? 0), 0) / valid.length
           ).toFixed(2),
         );
-
-  const summary = {
-    fixtureCount: FIXTURES.length,
-    validCount: valid.length,
-    inBandCount,
-    inBandAccuracy: valid.length
-      ? Number((inBandCount / valid.length).toFixed(2))
-      : null,
-    avgStability,
-    rubricDimensions: RUBRIC_DIMENSIONS,
-    model: process.env.GEMINI_MODEL ?? "gemini-1.5-flash",
-    tracing: tracing
-      ? { enabled: true, project: process.env.LANGCHAIN_PROJECT ?? "(default)" }
-      : { enabled: false },
+  const tracing =
+    process.env.LANGCHAIN_TRACING_V2 === "true" &&
+    !!process.env.LANGCHAIN_API_KEY;
+  return {
+    summary: {
+      fixtureCount: FIXTURES.length,
+      validCount: valid.length,
+      inBandCount,
+      inBandAccuracy: valid.length
+        ? Number((inBandCount / valid.length).toFixed(2))
+        : null,
+      avgStability,
+      rubricDimensions: RUBRIC_DIMENSIONS,
+      model: process.env.GEMINI_MODEL ?? "gemini-1.5-flash",
+      tracing: tracing
+        ? { enabled: true, project: process.env.LANGCHAIN_PROJECT ?? "(default)" }
+        : { enabled: false },
+    },
+    samples,
   };
+}
 
-  if (jsonOut) {
-    console.log(JSON.stringify({ summary, samples }, null, 2));
-    return;
+async function runRemote(baseUrl) {
+  const res = await fetch(`${baseUrl.replace(/\/$/, "")}/v1/eval`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+  });
+  if (!res.ok) {
+    throw new Error(
+      `Eval service ${baseUrl} returned ${res.status}: ${await res.text()}`,
+    );
   }
+  return res.json();
+}
 
+function toMarkdown({ summary, samples }) {
   const lines = [];
   lines.push("# SkillForge AI — LLM evaluation report");
   lines.push("");
@@ -166,8 +167,9 @@ async function main() {
     `- Avg stability (|Δrating| across 2 runs): ${summary.avgStability ?? "n/a"}`,
   );
   lines.push(`- Model: \`${summary.model}\``);
+  const tracing = summary.tracing ?? { enabled: false };
   lines.push(
-    `- LangSmith tracing: ${summary.tracing.enabled ? `enabled (project \`${summary.tracing.project}\`)` : "disabled — set LANGCHAIN_TRACING_V2=true and LANGCHAIN_API_KEY to enable"}`,
+    `- LangSmith tracing: ${tracing.enabled ? `enabled (project \`${tracing.project ?? "(default)"}\`)` : "disabled — set LANGCHAIN_TRACING_V2=true and LANGCHAIN_API_KEY to enable"}`,
   );
   lines.push("");
   lines.push("| Fixture | Parse OK | Overall | In band | Stability | Notes |");
@@ -178,14 +180,32 @@ async function main() {
     );
   }
   lines.push("");
+  return lines.join("\n");
+}
 
-  const report = lines.join("\n");
+async function main() {
+  const args = process.argv.slice(2);
+  const jsonOut = args.includes("--json");
+  const writeIdx = args.findIndex((a) => a.startsWith("--write="));
+  const writePath =
+    writeIdx >= 0 ? args[writeIdx].slice("--write=".length) : null;
+
+  const report = EVAL_SERVICE_URL
+    ? await runRemote(EVAL_SERVICE_URL)
+    : await runLocal();
+
+  if (jsonOut) {
+    console.log(JSON.stringify(report, null, 2));
+    return;
+  }
+
+  const md = toMarkdown(report);
   if (writePath) {
     const fs = await import("node:fs/promises");
-    await fs.writeFile(writePath, report, "utf8");
+    await fs.writeFile(writePath, md, "utf8");
     console.error(`Wrote report to ${writePath}`);
   } else {
-    console.log(report);
+    console.log(md);
   }
 }
 
