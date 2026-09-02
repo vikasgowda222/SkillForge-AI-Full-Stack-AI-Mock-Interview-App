@@ -13,9 +13,12 @@ import {
 /**
  * pgvector `vector(N)` column. Stored as a text representation of the JSON
  * array `[0.1, 0.2, ...]` and cast server-side. Only the RAG module reads this.
+ *
+ * NOTE: written as a plain function (not a generic arrow) because drizzle-kit
+ * runs esbuild on this file and TS-style generics in JS trip it up.
  */
-const vector = (dim) =>
-  customType<{ data: number[]; driverData: string }>({
+function vector(dim) {
+  return customType({
     dataType() {
       return `vector(${dim})`;
     },
@@ -27,6 +30,7 @@ const vector = (dim) =>
       return value;
     },
   });
+}
 
 /**
  * A generated mock interview (a set of AI questions/answers) owned by one user.
