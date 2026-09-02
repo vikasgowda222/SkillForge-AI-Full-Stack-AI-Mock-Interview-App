@@ -57,7 +57,7 @@
     "postcss": "^8",
     "prettier": "^3.3.3",
     "tailwindcss": "^3.4.1",
-    "vitest": "^2.1.4"
+    "vitest": "^4.1.11"
   },
   "overrides": {
     "better-sqlite3": "^11.10.0"
