@@ -24,7 +24,7 @@
     "@langchain/core": "^0.3.13",
     "@langchain/google-genai": "^0.1.2",
     "@langchain/langgraph": "^0.2.18",
-    "@neondatabase/serverless": "^0.10.1",
+    "@neondatabase/serverless": "^1.1.0",
     "@radix-ui/react-collapsible": "^1.1.20",
     "@radix-ui/react-dialog": "^1.1.23",
     "@radix-ui/react-slot": "^1.1.0",
