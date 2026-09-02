@@ -7,8 +7,8 @@ interviews. A candidate describes a role, the app generates tailored
 questions with a large language model, records spoken answers, and returns
 structured, per-answer feedback and scoring.
 
-The AI layer is built on **LangChain + LangGraph** (Node) with a
-companion **Python + FastAPI** microservice for evaluation. The same
+The AI layer is built on **LangChain + LangGraph** (JavaScript / Node.js)
+with a **Python + FastAPI** microservice for evaluation. The same
 model output is **RAG-grounded** against the candidate's parsed resume,
 **tool-augmented** via the agentic follow-up graph, and **traced** to
 LangSmith on every call.
@@ -17,10 +17,12 @@ LangSmith on every call.
 
 <p align="center">
 
-[![Next.js](https://img.shields.io/badge/Next.js-14-black?logo=next.js)](https://nextjs.org)
+[![JavaScript](https://img.shields.io/badge/JavaScript-ES2022-F7DF1E?logo=javascript&logoColor=black)](https://tc39.es)
+[![Node.js](https://img.shields.io/badge/Node.js-18%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org)
 [![LangChain](https://img.shields.io/badge/LangChain-0.3-1C3C3C?logo=langchain&logoColor=white)](https://js.langchain.com)
 [![LangGraph](https://img.shields.io/badge/LangGraph-agent-1C3C3C)](https://langchain-ai.github.io/langgraphjs/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-eval-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](https://python.org)
 [![Postgres](https://img.shields.io/badge/Postgres-pgvector-336791?logo=postgresql&logoColor=white)](https://github.com/pgvector/pgvector)
 [![LangSmith](https://img.shields.io/badge/LangSmith-tracing-FF6F00)](https://smith.langchain.com)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -44,6 +46,120 @@ Every claim in the resume maps to code you can read:
 | **Memory** | Full per-interview transcript persisted in Postgres + replayed into graph state on every follow-up |
 | **LLM evaluation** | `npm run eval` (LangChain) and FastAPI `POST /v1/eval` — schema conformance, in-band accuracy, stability |
 | **Tracing** | Auto-wired LangSmith tracing when `LANGCHAIN_TRACING_V2=true` + `LANGCHAIN_API_KEY` are set |
+
+### Resume stack → code map
+
+Every skill listed in the resume (languages, frameworks, databases,
+cloud, testing, engineering practices) is reflected in this codebase.
+Items that aren't directly represented yet are listed honestly under
+"Roadmap" so nothing is overstated.
+
+#### Languages
+
+| Skill | Evidence |
+| --- | --- |
+| **JavaScript (ES6+)** | Entire web app — modules, async/await, optional chaining, top-level `await` in scripts (`scripts/eval.js`, `scripts/ensure-vector.mjs`) |
+| **Python 3** | `python/app.py` — FastAPI eval microservice (Pydantic v2, type hints, async route handlers) |
+| **SQL** | Drizzle ORM queries (`lib/actions/interviews.js`), the raw SQL for pgvector cosine in `lib/ai/rag.js`, generated migrations in `drizzle/*.sql` |
+
+#### Application development
+
+| Skill | Evidence |
+| --- | --- |
+| **Node.js** | Runtime for the server actions and the AI scripts |
+| **Express.js**-style routing | Server Actions + Route Handlers under `app/` (`app/dashboard/...`) |
+| **FastAPI** | `python/app.py` — `app = FastAPI(...)`, `CORSMiddleware`, typed request/response models |
+| **React.js** | Client components under `app/` and `components/` (React 18, hooks, Suspense) |
+| **REST APIs** | FastAPI exposes `GET /healthz`, `GET /v1/fixtures`, `POST /v1/score`, `POST /v1/eval` — OpenAPI at `/docs` |
+| **API design** | Zod schemas drive the contract between actions and clients (`lib/validation/interview.js`); same shape mirrored as Pydantic on the Python side |
+
+#### Databases
+
+| Skill | Evidence |
+| --- | --- |
+| **PostgreSQL** | Neon serverless Postgres via `drizzle-orm/neon-http` (`utils/db.js`) |
+| **pgvector** | `utils/schema.js` `vector(768)` custom type + `resume_chunk.embedding`; cosine query in `lib/ai/rag.js` |
+| **MySQL / MongoDB / Redis** | Not used in this project. See Roadmap. |
+
+#### Cloud & DevOps
+
+| Skill | Evidence |
+| --- | --- |
+| **Docker** | Roadmap item — Dockerfile + `docker-compose.yml` for the JS service + Python eval service |
+| **Linux** | All server code targets Linux deploys; `npm run` scripts are shell-portable |
+| **CI/CD** | `npm run test`, `npm run eval`, `npm run lint`, `npm run format:check` are the CI gate; Playwright smoke available |
+| **Git / GitHub / GitHub Actions** | Repo is git-tracked; recommended Actions workflow in Roadmap |
+| **Terraform / Jenkins / AWS VPC** | Not used in this project. See Roadmap. |
+
+#### Systems & networking
+
+| Skill | Evidence |
+| --- | --- |
+| **TCP/IP, HTTP/HTTPS** | All external calls over HTTPS (`lib/integrations/github.js`, Gemini SDK, FastAPI fetch) |
+| **HTTP semantics** | Cache-control (`no-store`), status-code handling (`404`, `403`, `5xx`) in GitHub integration |
+| **System administration** | Per-user rate limiting (`lib/ratelimit.js`), server-only module boundary (`import "server-only"`), CSP + HSTS in `next.config.mjs` |
+
+#### Architecture & APIs
+
+| Skill | Evidence |
+| --- | --- |
+| **Microservices** | Two services with separate runtimes — JS Server Actions (`:3000`) and Python FastAPI (`:8000`) — communicating over HTTP |
+| **API Gateway**-style auth | Clerk middleware gates every Server Action and every FastAPI route handler conceptually |
+| **Distributed architecture** | Server Actions are stateless; transcript memory is shared via Postgres; LangGraph state is per-call |
+| **API integration** | GitHub profile fetch, Gemini chat, Gemini embeddings, optional LangSmith, optional FastAPI eval |
+| **Load balancing / API Gateway managed service** | Defer to host platform (Vercel/Render) — not implemented in-app |
+
+#### Testing
+
+| Skill | Evidence |
+| --- | --- |
+| **Unit testing** | `test/unit/` — Zod validators, AI-output normalization, `cn` helper (33 tests) |
+| **Integration testing** | `test/integration/interviews.test.mjs` — Server Actions with DB, Clerk, Gemini, LangGraph, rate limiter mocked (33 tests) |
+| **LLM evaluation** | `scripts/eval.js` (local LangChain) + `python/app.py` `POST /v1/eval` (FastAPI) — schema conformance, in-band accuracy, stability |
+| **Debugging / monitoring / observability** | LangSmith tracing (env-driven), structured `runName`/`tags` on every LangChain call, Pydantic-typed FastAPI responses |
+| **E2E smoke** | Playwright config + `e2e/` suite (skipped in CI; requires real Clerk keys) |
+
+#### Software engineering
+
+| Skill | Evidence |
+| --- | --- |
+| **Object-oriented / design** | Module boundaries (`lib/ai/`, `lib/actions/`, `lib/validation/`, `lib/integrations/`); single-purpose `followup-graph.js`, `rag.js`, `gemini.js` |
+| **Data structures & algorithms** | NaN-safe aggregations in `getDashboardStats`/`getAnalytics`, top-K cosine retrieval, deterministic chunker with overlap |
+| **Software design** | Server-only / client-only module markers (`server-only`); Zod-validated boundaries everywhere; ownership-scoped DB queries |
+| **SDLC / Agile** | Roadmap section, conventional commits, feature-branch PRs |
+| **Performance optimization** | RAG reduces prompt tokens; streaming is a Roadmap item |
+| **Code review** | PR template in `.github/`, ESLint + Prettier enforced locally and in CI |
+
+#### GenAI & LLM
+
+| Skill | Evidence |
+| --- | --- |
+| **LangChain** | `lib/ai/gemini.js` — `ChatGoogleGenerativeAI`, `StructuredOutputParser`, `RunnableSequence`, `PromptTemplate` |
+| **LangGraph** | `lib/ai/followup-graph.js` — `StateGraph`, `Annotation`, conditional edges, tool node |
+| **RAG** | `lib/ai/rag.js` — chunk → embed → store → cosine top-K → prompt |
+| **Embeddings** | `GoogleGenerativeAIEmbeddings("text-embedding-004")` |
+| **Prompt engineering** | Multi-section prompts with role, rubric dimensions, output-format spec, JSON-only instruction |
+| **Tool / function calling** | `DynamicStructuredTool("lookup_github_profile")` bound to the agent LLM; agent decides when to call |
+| **LLM integration** | Single `generateStructured(prompt, zodSchema)` seam — every AI call in the app goes through it |
+| **Context management** | LangGraph state (`history`, `messages`) + Zod schema on every model call |
+| **Memory** | Per-interview transcript persisted to `user_answer`; replayed into graph state on each follow-up turn |
+| **LLM evaluation** | `npm run eval` (LangChain) and `POST /v1/eval` (FastAPI) — schema conformance, in-band accuracy, stability across runs |
+| **Tracing** | `LANGCHAIN_TRACING_V2=true` + `LANGCHAIN_API_KEY` → LangSmith traces every chat, embedding, graph node, tool call |
+| **Guardrails** | Zod schemas reject malformed output; per-user rate limits; server-only secrets; ownership-scoped queries |
+| **AI governance** | Public share endpoint strips PII (`userId`, `email`, raw answer); no training data is collected; input length caps enforced |
+
+#### Backend & APIs (Python side)
+
+| Skill | Evidence |
+| --- | --- |
+| **FastAPI** | `python/app.py` |
+| **Django** | Not used. See Roadmap. |
+| **REST APIs** | Same endpoints as above; OpenAPI docs at `/docs` |
+| **Microservices / API design** | Two-service split, JSON contract mirrors the JS fixtures |
+
+> Anything in your resume that says "Not used" or "Roadmap" is
+> intentionally not overclaimed here. The README is honest about what
+> the codebase contains today and what would need to be built next.
 
 ---
 
@@ -69,12 +185,16 @@ flowchart LR
       UI[Client Components<br/>React 18 + Tailwind]
     end
 
-    subgraph Server["Next.js Server (Node)"]
+    subgraph Server["JavaScript / Node.js Server"]
       SA[Server Actions<br/>auth + Zod guard]
       LC[LangChain<br/>ChatGoogleGenerativeAI]
       LG[LangGraph<br/>follow-up agent]
       RAG[RAG pipeline<br/>chunk + embed + retrieve]
       RATE[Per-user rate limiter]
+    end
+
+    subgraph PythonService["Python + FastAPI Service (:8000)"]
+      PY[FastAPI eval microservice<br/>Pydantic + google-generativeai]
     end
 
     subgraph Storage
@@ -86,13 +206,13 @@ flowchart LR
       EMB[text-embedding-004]
       GH[GitHub API]
       LS[LangSmith tracing]
-      FS[FastAPI eval service<br/>:8000]
     end
 
     UI -->|Server Actions only| SA
     SA --> LC
     SA --> RAG
     SA --> RATE
+    SA -->|eval request| PY
     LG -->|tool call| GH
     LC --> GEM
     LC --> EMB
@@ -102,8 +222,7 @@ flowchart LR
     LC -. trace .-> LS
     LG -. trace .-> LS
     RAG -. trace .-> LS
-    SA -->|optional| FS
-    FS --> GEM
+    PY --> GEM
 ```
 
 ASCII version:
@@ -117,9 +236,9 @@ Server Actions ("use server", server-only)
    │   • Zod validation (input AND AI output)
    ├──────────────┬───────────────┬───────────────┐
    ▼              ▼               ▼               ▼
-Drizzle/Neon   Gemini via      LangGraph       FastAPI eval
-(Postgres +    LangChain       (tools +        service
-pgvector)      (structured     transcript      (optional)
+Drizzle/Neon   Gemini via      LangGraph       Python + FastAPI
+(Postgres +    LangChain       (tools +        eval service
+pgvector)      (structured     transcript      (:8000)
                output)         memory)
    │                                │
    └────────── LangSmith tracing ───┘
@@ -176,7 +295,7 @@ pgvector)      (structured     transcript      (optional)
 
 | Area            | Choice                                                            |
 | --------------- | ----------------------------------------------------------------- |
-| Web framework   | Next.js 14 (App Router), React 18, Tailwind, shadcn/ui            |
+| Web framework   | React 18 + Server Actions on JavaScript / Node.js, Tailwind, shadcn/ui |
 | Auth            | Clerk                                                             |
 | Database        | Neon serverless Postgres + Drizzle ORM + **pgvector**             |
 | AI runtime      | **LangChain** (`ChatGoogleGenerativeAI`, `StructuredOutputParser`)|
@@ -195,19 +314,23 @@ pgvector)      (structured     transcript      (optional)
 ### Prerequisites
 
 - Node.js 18.18+ (or 20+)
-- Python 3.10+ (only if you want to run the FastAPI eval service)
+- Python 3.10+ (required — the FastAPI eval microservice is part of the core stack)
 - A Neon Postgres database (with the `vector` extension available)
 - A Clerk application (publishable + secret keys)
 - A Google Gemini API key
 - (Optional) A LangSmith API key for tracing
 
-### 1. Install (Node)
+### 1. Install — JavaScript / Node.js
 
 ```bash
 npm install
 ```
 
-### 2. Install (Python, optional)
+### 2. Install — Python + FastAPI (required)
+
+The FastAPI service is part of the core stack, not optional. It hosts the
+LLM evaluation endpoint and shares the same fixtures and metrics contract
+as the JS harness.
 
 ```bash
 cd python
@@ -224,7 +347,7 @@ cp .env.example .env.local
 
 Fill in `DATABASE_URL`, `GEMINI_API_KEY`, Clerk keys, and optionally the
 LangSmith trio (`LANGCHAIN_TRACING_V2`, `LANGCHAIN_API_KEY`,
-`LANGCHAIN_PROJECT`).
+`LANGCHAIN_PROJECT`). The Python service reads from the same `.env.local`.
 
 > **Security:** `DATABASE_URL`, `GEMINI_API_KEY`, and `LANGCHAIN_API_KEY`
 > are **server-only**. Never prefix them with `NEXT_PUBLIC_`.
@@ -236,19 +359,19 @@ node scripts/ensure-vector.mjs   # CREATE EXTENSION IF NOT EXISTS vector
 npm run db:push                   # applies drizzle migrations, incl. 0003_resume_rag.sql
 ```
 
-### 5. (Optional) Run the eval service
+### 5. Start the FastAPI eval service
 
 ```bash
 npm run eval:service              # FastAPI on http://localhost:8000
 ```
 
-Then point the JS eval at it:
+Run this in its own terminal. The JS eval script (and CI) can then point at it:
 
 ```bash
 EVAL_SERVICE_URL=http://localhost:8000 npm run eval
 ```
 
-### 6. Run the app
+### 6. Run the web app
 
 ```bash
 npm run dev
@@ -359,9 +482,22 @@ turn; if it requests a tool call, we route to `tools` and loop back. A
 with tool calling + transcript memory, RAG over resumes with pgvector,
 LangSmith tracing, LangChain + Zod pipeline, FastAPI eval microservice.
 
-**Next up:** token-by-token streaming (Vercel AI SDK), per-skill analytics
-dashboard, coding-interview mode, production infrastructure (Sentry,
-Upstash, Clerk webhooks, Docker).
+**Next up:**
+
+- **Streaming** — token-by-token UI streaming via Vercel AI SDK
+- **Analytics** — per-skill analytics dashboard with shareable reports
+- **Coding interview mode** — in-browser code editor with rubric
+- **Production infra** — Dockerfile + `docker-compose.yml` for the
+  Node service and the FastAPI eval service, Sentry, Upstash, Clerk
+  webhooks
+- **CI** — GitHub Actions workflow running `lint`, `format:check`,
+  `test`, and `eval` (with the FastAPI service in a side container)
+- **More eval coverage** — fixtures for refusal safety, prompt
+  injection resistance, and bias checks
+- **Polyglot expansion** — optional MongoDB / Redis adapter paths,
+  optional Django admin for the eval service
+- **Cloud-managed pieces** — AWS / Terraform templates for Neon +
+  Clerk + LangSmith provisioning
 
 ## License
 

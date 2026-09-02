@@ -2,7 +2,7 @@
 
 FastAPI mirror of the JS `scripts/eval.js`. Same fixtures, same metrics
 (schema conformance, in-band accuracy, stability across 2 runs). Used by
-CI and by the Next.js eval script when `EVAL_SERVICE_URL` is set.
+CI and by the Node.js eval script when `EVAL_SERVICE_URL` is set.
 
 ## Run
 
@@ -33,11 +33,10 @@ Reads `GEMINI_API_KEY` and `GEMINI_MODEL` from the project's `.env.local`
 
 ## Why a Python service?
 
-The interview generation + scoring pipeline is JS (LangChain / LangGraph
-on Next.js). Having a Python + FastAPI side service for the eval layer
-gives you:
+The interview generation + scoring pipeline is JavaScript (LangChain /
+LangGraph on Node.js). The Python + FastAPI side handles evaluation:
 
-- A second language in the stack you can honestly put on a resume.
-- Decoupling: CI can run eval against a long-lived service instead of
-  paying cold-start cost every run.
-- A reusable REST surface for any future ML experiment / dashboard.
+- Same fixtures and metrics contract as the JS harness, callable over HTTP.
+- CI can hit `/v1/eval` directly without a Node dependency in the loop.
+- Reusable REST surface for any future ML experiment, dashboard, or
+  evaluation runner.
