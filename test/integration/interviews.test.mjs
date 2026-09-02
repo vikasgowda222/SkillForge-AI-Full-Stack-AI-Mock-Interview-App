@@ -15,6 +15,10 @@ const state = vi.hoisted(() => ({
   inserted: [],
   /** Records every db.update().set(...) payload. */
   updated: [],
+  /** Value returned by the mocked runFollowUpGraph(). */
+  followupQuestion: null,
+  /** Records every runFollowUpGraph() invocation. */
+  followupCalls: [],
 }));
 
 vi.mock("@clerk/nextjs/server", () => ({
@@ -34,6 +38,18 @@ vi.mock("@/lib/ratelimit", () => ({
 
 vi.mock("@/lib/ai/gemini", () => ({
   generateJson: vi.fn(async () => state.gen),
+}));
+
+vi.mock("@/lib/ai/followup-graph", () => ({
+  runFollowUpGraph: vi.fn(async (args) => {
+    state.followupCalls.push(args);
+    return { question: state.followupQuestion ?? "follow-up?" };
+  }),
+}));
+
+vi.mock("@/lib/ai/rag", () => ({
+  indexResume: vi.fn(async () => ({ chunks: 0 })),
+  searchResumeContext: vi.fn(async () => []),
 }));
 
 vi.mock("@/utils/db", () => {
@@ -101,6 +117,8 @@ beforeEach(() => {
   state.gen = null;
   state.inserted.length = 0;
   state.updated.length = 0;
+  state.followupQuestion = null;
+  state.followupCalls.length = 0;
   vi.clearAllMocks();
 });
 
@@ -293,7 +311,7 @@ describe("saveUserAnswer (ownership)", () => {
   });
 });
 
-describe("generateFollowUp (agentic)", () => {
+describe("generateFollowUp (LangGraph conductor)", () => {
   it("throws NOT_FOUND when the interview is not owned", async () => {
     state.selectQueue = [[]];
     await expect(
@@ -301,23 +319,50 @@ describe("generateFollowUp (agentic)", () => {
     ).rejects.toThrow("NOT_FOUND");
   });
 
-  it("returns a follow-up question for an owned interview", async () => {
-    state.selectQueue = [[ownedRow]];
-    state.gen = { question: "Can you give a concrete example?" };
+  it("returns a follow-up question for an owned interview (graph path)", async () => {
+    // selectQueue order: getInterviewById -> ownedRow, then prior answers ([]).
+    state.selectQueue = [[ownedRow], []];
+    state.followupQuestion = "Can you give a concrete example?";
     const result = await generateFollowUp({
       mockId: UUID,
       question: "What is a closure?",
       userAnswer: "A function with its scope.",
     });
     expect(result).toEqual({ question: "Can you give a concrete example?" });
+    expect(state.followupCalls).toHaveLength(1);
+    expect(state.followupCalls[0].jobPosition).toBe("Engineer");
+    expect(state.followupCalls[0].question).toBe("What is a closure?");
+    expect(state.followupCalls[0].userAnswer).toBe("A function with its scope.");
+    expect(state.followupCalls[0].previousQuestions).toEqual([]);
   });
 
-  it("rejects an empty follow-up from the model", async () => {
-    state.selectQueue = [[ownedRow]];
-    state.gen = { question: "" };
-    await expect(
-      generateFollowUp({ mockId: UUID, question: "q", userAnswer: "answer" }),
-    ).rejects.toThrow();
+  it("passes the transcript memory to the graph for context", async () => {
+    const prior = [
+      {
+        id: 1,
+        question: "What is a closure?",
+        userAns: "A function with its scope.",
+      },
+      {
+        id: 2,
+        question: "How does the event loop work?",
+        userAns: "It processes the callback queue.",
+      },
+    ];
+    state.selectQueue = [[ownedRow], prior];
+    state.followupQuestion = "Where does this get tricky?";
+    await generateFollowUp({
+      mockId: UUID,
+      question: "How do you avoid race conditions?",
+      userAnswer: "Locks.",
+    });
+    expect(state.followupCalls[0].previousQuestions).toEqual([
+      { question: "What is a closure?", answer: "A function with its scope." },
+      {
+        question: "How does the event loop work?",
+        answer: "It processes the callback queue.",
+      },
+    ]);
   });
 });
 

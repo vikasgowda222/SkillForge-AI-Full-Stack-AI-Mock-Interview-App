@@ -1,4 +1,5 @@
 import {
+  customType,
   index,
   integer,
   pgTable,
@@ -8,6 +9,24 @@ import {
   uniqueIndex,
   varchar,
 } from "drizzle-orm/pg-core";
+
+/**
+ * pgvector `vector(N)` column. Stored as a text representation of the JSON
+ * array `[0.1, 0.2, ...]` and cast server-side. Only the RAG module reads this.
+ */
+const vector = (dim) =>
+  customType<{ data: number[]; driverData: string }>({
+    dataType() {
+      return `vector(${dim})`;
+    },
+    toDriver(value) {
+      return JSON.stringify(value);
+    },
+    fromDriver(value) {
+      if (typeof value === "string") return JSON.parse(value);
+      return value;
+    },
+  });
 
 /**
  * A generated mock interview (a set of AI questions/answers) owned by one user.
@@ -71,5 +90,33 @@ export const UserAnswer = pgTable(
     mockIdRefIdx: index("user_answer_mock_id_ref_idx").on(table.mockIdRef),
     userIdIdx: index("user_answer_user_id_idx").on(table.userId),
     userEmailIdx: index("user_answer_user_email_idx").on(table.userEmail),
+  }),
+);
+
+/**
+ * One chunk of a parsed resume, embedded for semantic search (RAG). Owned via
+ * `userId`; queries should always be scoped to the caller's userId.
+ *
+ * Embedding dim is hardcoded to 768 (Gemini text-embedding-004 default). If
+ * you swap the embedding model, run a new migration to change the column type.
+ */
+export const ResumeChunk = pgTable(
+  "resume_chunk",
+  {
+    id: serial("id").primaryKey(),
+    userId: varchar("user_id", { length: 64 }).notNull(),
+    /** Optional link to the interview this resume was used to generate. */
+    mockIdRef: varchar("mock_id_ref", { length: 36 }),
+    source: varchar("source", { length: 32 }).notNull().default("resume"),
+    chunkIndex: integer("chunk_index").notNull(),
+    text: text("text").notNull(),
+    embedding: vector(768)("embedding").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    userIdIdx: index("resume_chunk_user_id_idx").on(table.userId),
+    mockIdIdx: index("resume_chunk_mock_id_idx").on(table.mockIdRef),
   }),
 );
